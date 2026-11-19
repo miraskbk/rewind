@@ -29,11 +29,31 @@ local function load()
 end
 
 local function save()
+	local files = get_open_files()
+
+	if #files == 0 then
+		return
+	end
+
 	local data = load()
-	data[vim.fn.getcwd()] = get_open_files()
+	data[vim.fn.getcwd()] = files
 
 	local table_json = vim.json.encode(data)
 	vim.fn.writefile({ table_json }, DATA_FILE)
+end
+
+local function restore()
+	local data = load()
+	local files = data[vim.fn.getcwd()]
+
+	if not files then
+		vim.notify("rewind: no saved session", vim.log.levels.WARN)
+		return
+	end
+
+	for _, file in ipairs(files) do
+		vim.cmd.edit(file)
+	end
 end
 
 function M.setup()
@@ -43,5 +63,7 @@ function M.setup()
 		group = group,
 		callback = save,
 	})
+
+	vim.api.nvim_create_user_command("Rewind", restore, {})
 end
 return M
